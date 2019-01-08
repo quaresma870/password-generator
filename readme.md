@@ -1,5 +1,4 @@
 # Readme
---------
 
 This is a simple password generator which can: 
   - Create the number of passwords you want at once;
