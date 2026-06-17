@@ -1,0 +1,82 @@
+name: 🔐 Password Generator Demo
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+    inputs:
+      count:
+        description: 'Number of passwords'
+        required: false
+        default: '5'
+      length:
+        description: 'Password length'
+        required: false
+        default: '20'
+      mode:
+        description: 'Mode: password or passphrase'
+        required: false
+        default: 'password'
+        type: choice
+        options:
+          - password
+          - passphrase
+
+jobs:
+  generate:
+    name: Generate Passwords
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install colorama pyperclip
+
+      - name: 🔑 Generate passwords (standard)
+        run: |
+          echo "### Standard passwords (length 20)"
+          python3 password_generator.py -n 5 -l 20
+
+      - name: 🔑 Generate passwords (no symbols)
+        run: |
+          echo "### No symbols — good for APIs / env vars"
+          python3 password_generator.py -n 3 -l 32 --no-symbols
+
+      - name: 🧠 Generate passphrases
+        run: |
+          echo "### Passphrases (5 words)"
+          python3 password_generator.py --passphrase -w 5 -n 3
+
+      - name: 🎛️ Custom run (from workflow_dispatch inputs)
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          echo "### Custom run from manual trigger"
+          if [ "${{ github.event.inputs.mode }}" = "passphrase" ]; then
+            python3 password_generator.py --passphrase -w ${{ github.event.inputs.count }}
+          else
+            python3 password_generator.py \
+              -n ${{ github.event.inputs.count }} \
+              -l ${{ github.event.inputs.length }}
+          fi
+
+      - name: 💾 Save passwords to artifact
+        run: |
+          python3 password_generator.py -n 20 -l 24 -o generated_passwords.txt --no-entropy
+          echo "Saved 20 passwords to generated_passwords.txt"
+
+      - name: Upload password file as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-passwords
+          path: generated_passwords.txt
+          retention-days: 1
